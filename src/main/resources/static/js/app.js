@@ -101,7 +101,6 @@ function ensurePartitionElements() {
     partitionDiv.innerHTML = `
       <div class="partition-label">P${partition}</div>
       <div class="partition-count">msgs: 0</div>
-      <div class="partition-arrow">→ C</div>
     `;
     partitionsContainer.appendChild(partitionDiv);
   }
@@ -409,7 +408,6 @@ function updatePartitionCounts(data) {
 
 // Speed control functionality
 let currentSpeed = 1.0;
-let isPaused = false;
 
 // Global function for HTML onclick handlers
 window.bulk = bulk;
@@ -441,8 +439,6 @@ function initializeApp() {
   const pageSizeSelect = document.getElementById('pageSize');
   const resetBtn = document.getElementById('resetBtn');
   const speedSlider = document.getElementById('speedSlider');
-  const pauseBtn = document.getElementById('pauseBtn');
-  const copyBtn = document.getElementById('copyBtn');
   
   if (prevBtn) {
     prevBtn.addEventListener('click', () => {
@@ -479,39 +475,18 @@ function initializeApp() {
       if (speedValue) {
         speedValue.textContent = currentSpeed.toFixed(1) + 'x';
       }
-    });
-  }
-  
-  if (pauseBtn) {
-    pauseBtn.addEventListener('click', function() {
-      isPaused = !isPaused;
-      this.textContent = isPaused ? 'Resume' : 'Pause';
-      if (isPaused) {
+      
+      // Update the timer interval based on new speed
+      if (timer) {
         clearInterval(timer);
-      } else {
         timer = setInterval(refresh, 1500 / currentSpeed);
       }
     });
   }
   
-  if (copyBtn) {
-    copyBtn.addEventListener('click', function() {
-      // Copy current state to clipboard
-      const state = {
-        topic: TOPIC,
-        messages: lastData,
-        timestamp: new Date().toISOString()
-      };
-      navigator.clipboard.writeText(JSON.stringify(state, null, 2));
-      this.textContent = 'Copied!';
-      setTimeout(() => {
-        this.textContent = 'Copy';
-      }, 2000);
-    });
-  }
   
   resetAndRefresh();
-  timer = setInterval(refresh, 1500);
+  timer = setInterval(refresh, 1500 / currentSpeed);
 }
 
 if (document.readyState === 'loading') {

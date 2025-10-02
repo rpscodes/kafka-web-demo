@@ -31,6 +31,7 @@ function clearState() {
   consumedTotal = 0;
   knownIds = new Set();
   lastData = [];
+  keyToPartitionMap = {};
   
   // Clear table
   const tbody = document.querySelector('#tbl tbody');
@@ -66,6 +67,20 @@ function colorForKey(str) {
   return PALETTE[hashIndex(str)];
 }
 
+// Track actual key-to-partition mappings from sent messages
+let keyToPartitionMap = {};
+
+// Initialize with empty mappings - keys will only show after real messages are sent
+function initializeKeyMappings() {
+  // Start with empty mappings - only populate with real data from Kafka
+  keyToPartitionMap = {};
+}
+
+// Function to get keys that belong to a specific partition based on actual data
+function getKeysForPartition(partition) {
+  return Object.keys(keyToPartitionMap).filter(key => keyToPartitionMap[key] === partition);
+}
+
 function initializeLegend() {
   const legend = document.getElementById('legend');
   if (!legend) return;
@@ -99,10 +114,46 @@ function ensurePartitionElements() {
     partitionDiv.className = 'partition';
     partitionDiv.setAttribute('data-partition', partition);
     partitionDiv.innerHTML = `
-      <div class="partition-label">P${partition}</div>
+      <div class="partition-label">Partition ${partition}</div>
+      <div class="partition-keys" id="keys-${partition}"></div>
       <div class="partition-count">msgs: 0</div>
     `;
     partitionsContainer.appendChild(partitionDiv);
+  }
+  
+  // Populate keys for each partition
+  populatePartitionKeys();
+}
+
+function populatePartitionKeys() {
+  // Only populate if partitions are initialized
+  if (!parts || parts.length === 0) {
+    console.log('populatePartitionKeys: parts not initialized yet');
+    return;
+  }
+  
+  console.log('populatePartitionKeys: parts =', parts);
+  console.log('populatePartitionKeys: keyToPartitionMap =', keyToPartitionMap);
+  
+  for (const partition of parts) {
+    const keysContainer = document.getElementById(`keys-${partition}`);
+    if (!keysContainer) {
+      console.log(`populatePartitionKeys: keys container not found for partition ${partition}`);
+      continue;
+    }
+    
+    const keysForPartition = getKeysForPartition(partition);
+    console.log(`populatePartitionKeys: partition ${partition} keys =`, keysForPartition);
+    
+    keysContainer.innerHTML = '';
+    
+    keysForPartition.forEach(key => {
+      const keyElement = document.createElement('span');
+      keyElement.className = 'partition-key';
+      keyElement.textContent = key;
+      keyElement.style.backgroundColor = colorForKey(key);
+      keysContainer.appendChild(keyElement);
+    });
   }
 }
 
@@ -116,6 +167,14 @@ function animateMessageConveyor(key, partition) {
   const producerCircle = document.querySelector('.producer-circle');
   const partitionEl = document.querySelector(`[data-partition="${partition}"]`);
   const consumerCircle = document.querySelector('.consumer-circle');
+  
+  console.log('Conveyor animation elements:', {
+    simulationArea: !!simulationArea,
+    producerCircle: !!producerCircle,
+    partitionEl: !!partitionEl,
+    consumerCircle: !!consumerCircle,
+    partition: partition
+  });
   
   if (!simulationArea || !producerCircle || !partitionEl || !consumerCircle) {
     console.error('Required elements not found for conveyor animation');
@@ -140,12 +199,20 @@ function animateMessageConveyor(key, partition) {
   `;
   
   simulationArea.appendChild(messageEl);
+  console.log('Animated message element created and appended');
   
   // Get all positions
   const simulationRect = simulationArea.getBoundingClientRect();
   const producerRect = producerCircle.getBoundingClientRect();
   const partitionRect = partitionEl.getBoundingClientRect();
   const consumerRect = consumerCircle.getBoundingClientRect();
+  
+  console.log('Element positions:', {
+    simulationRect,
+    producerRect,
+    partitionRect,
+    consumerRect
+  });
   
   // Calculate positions
   const startX = producerRect.left + producerRect.width / 2 - simulationRect.left;
@@ -283,6 +350,9 @@ async function bulk(n) {
       const partition = partitionMatch ? parseInt(partitionMatch[1]) : 0;
       console.log('Extracted partition:', partition);
       
+      // Track the key-to-partition mapping
+      keyToPartitionMap[key] = partition;
+      
       // Trigger conveyor animation with delay
       setTimeout(() => {
         console.log('Conveyor animation for key:', key, 'partition:', partition);
@@ -295,6 +365,10 @@ async function bulk(n) {
     producedTotal += n;
     status.textContent = '✅ Sent ' + n + ' messages successfully!';
     status.className = 'status';
+    
+    // Update partition keys display once after all messages are sent
+    populatePartitionKeys();
+    
     refresh();
   } catch (e) {
     console.error('Bulk send error:', e);
@@ -365,6 +439,12 @@ async function refresh() {
   }
   } catch (e) {
     console.error('Refresh error:', e);
+    // Show error to user when server is not available
+    const status = document.getElementById('status');
+    if (status) {
+      status.textContent = '❌ Error: Cannot connect to Kafka server';
+      status.className = 'status';
+    }
   }
 }
 
@@ -378,6 +458,13 @@ async function resetAndRefresh() {
     refresh();
   } catch (e) {
     console.error('Reset failed:', e);
+    // Show error to user and prevent app from working
+    const status = document.getElementById('status');
+    if (status) {
+      status.textContent = '❌ Error: Cannot connect to Kafka server';
+      status.className = 'status';
+    }
+    throw e; // Re-throw to prevent app initialization
   }
 }
 
@@ -485,7 +572,13 @@ function initializeApp() {
   }
   
   
+  // Initialize key mappings and populate keys for static partitions immediately
+  initializeKeyMappings();
+  populatePartitionKeys();
+  
+  // Reset and refresh - app should fail if Kafka is not available
   resetAndRefresh();
+  
   timer = setInterval(refresh, 1500 / currentSpeed);
 }
 

@@ -329,15 +329,6 @@ footer {
 
 
 
-.status {
-  padding: 8px 16px;
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success-dark);
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 14px;
-  border: 1px solid rgba(16, 185, 129, 0.2);
-}
 
 .loading {
   display: inline-block;
@@ -389,7 +380,18 @@ footer {
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.quick-send-reset-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .quick-send-group {
@@ -400,6 +402,8 @@ footer {
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .quick-send-label {
@@ -409,53 +413,6 @@ footer {
   margin-right: 4px;
 }
 
-.speed-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-primary);
-}
-
-.speed-control label {
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.speed-slider {
-  width: 100px;
-  height: 6px;
-  background: var(--bg-tertiary);
-  border-radius: 3px;
-  outline: none;
-  -webkit-appearance: none;
-}
-
-.speed-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  background: var(--primary);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.speed-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  background: var(--primary);
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-#speedValue {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  min-width: 30px;
-}
 
 .quick-send-btn, .pause-btn, .copy-btn, .reset-btn {
   padding: 8px 12px;
@@ -466,6 +423,7 @@ footer {
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 40px;
+  flex-shrink: 0;
 }
 
 .quick-send-btn {
@@ -487,6 +445,28 @@ footer {
 .pause-btn:hover, .copy-btn:hover, .reset-btn:hover {
   background: var(--bg-tertiary);
   transform: translateY(-1px);
+}
+
+.reset-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.status {
+  padding: 8px 16px;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-dark);
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: none;
+}
+
+.status:not(:empty) {
+  display: inline-block;
 }
 
 /* Key Legend */

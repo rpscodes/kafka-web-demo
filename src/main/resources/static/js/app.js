@@ -493,8 +493,6 @@ function updatePartitionCounts(data) {
   }
 }
 
-// Speed control functionality
-let currentSpeed = 1.0;
 
 // Global function for HTML onclick handlers
 window.bulk = bulk;
@@ -525,7 +523,6 @@ function initializeApp() {
   const nextBtn = document.getElementById('nextBtn');
   const pageSizeSelect = document.getElementById('pageSize');
   const resetBtn = document.getElementById('resetBtn');
-  const speedSlider = document.getElementById('speedSlider');
   
   if (prevBtn) {
     prevBtn.addEventListener('click', () => {
@@ -555,21 +552,6 @@ function initializeApp() {
     resetBtn.addEventListener('click', resetAndRefresh);
   }
   
-  if (speedSlider) {
-    speedSlider.addEventListener('input', function(e) {
-      currentSpeed = parseFloat(e.target.value);
-      const speedValue = document.getElementById('speedValue');
-      if (speedValue) {
-        speedValue.textContent = currentSpeed.toFixed(1) + 'x';
-      }
-      
-      // Update the timer interval based on new speed
-      if (timer) {
-        clearInterval(timer);
-        timer = setInterval(refresh, 1500 / currentSpeed);
-      }
-    });
-  }
   
   
   // Initialize key mappings and populate keys for static partitions immediately
@@ -579,7 +561,7 @@ function initializeApp() {
   // Reset and refresh - app should fail if Kafka is not available
   resetAndRefresh();
   
-  timer = setInterval(refresh, 1500 / currentSpeed);
+  timer = setInterval(refresh, 1500);
 }
 
 if (document.readyState === 'loading') {

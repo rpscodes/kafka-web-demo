@@ -37,12 +37,16 @@ function clearState() {
   const tbody = document.querySelector('#tbl tbody');
   if (tbody) tbody.innerHTML = '';
   
-  // Reset partition counts
+  // Reset partition counts and clear partition keys
   for (const partition of parts) {
     const partitionEl = document.querySelector(`[data-partition="${partition}"]`);
     if (partitionEl) {
       const countEl = partitionEl.querySelector('.partition-count');
       if (countEl) countEl.textContent = 'msgs: 0';
+      
+      // Clear partition keys
+      const keysContainer = partitionEl.querySelector('.partition-keys');
+      if (keysContainer) keysContainer.innerHTML = '';
     }
   }
   
@@ -410,6 +414,7 @@ function renderTable() {
 }
 
 async function refresh() {
+  console.log('refresh() called at:', new Date().toISOString());
   try {
     const res = await fetch('/messages');
     if (!res.ok) {
@@ -448,16 +453,37 @@ async function refresh() {
   }
 }
 
+let isResetting = false;
+
 async function resetAndRefresh() {
+  // Prevent multiple rapid clicks
+  if (isResetting) {
+    console.log('Reset already in progress, ignoring click');
+    return;
+  }
+  
+  isResetting = true;
+  console.log('Starting reset process...');
+  
   try {
     const res = await fetch('/reset', { method: 'POST' });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     }
+    console.log('Server reset successful, clearing client state...');
     clearState();
-    refresh();
+    console.log('Client state cleared, refreshing data...');
+    
+    // Instead of reloading the page, just refresh the data
+    await refresh();
+    
+    // Reset the flag after successful reset
+    isResetting = false;
+    console.log('Reset completed successfully');
+    
   } catch (e) {
     console.error('Reset failed:', e);
+    isResetting = false; // Reset flag on error
     // Show error to user and prevent app from working
     const status = document.getElementById('status');
     if (status) {
@@ -515,8 +541,18 @@ window.testAnimation = function() {
 };
 
 // Initialize when DOM is ready
+let appInitialized = false;
+
 function initializeApp() {
+  if (appInitialized) {
+    console.log('App already initialized, skipping...');
+    return;
+  }
+  
+  appInitialized = true;
   console.log('DOM ready, initializing app...');
+  console.log('Current URL:', window.location.href);
+  console.log('Document ready state:', document.readyState);
   
   // Set up event listeners
   const prevBtn = document.getElementById('prevBtn');
@@ -558,15 +594,27 @@ function initializeApp() {
   initializeKeyMappings();
   populatePartitionKeys();
   
-  // Reset and refresh - app should fail if Kafka is not available
-  resetAndRefresh();
-  
-  timer = setInterval(refresh, 1500);
+  // Start with a regular refresh - but don't start timer if server is not available
+  refresh().then(() => {
+    // Only start timer if initial refresh succeeds and timer isn't already running
+    if (!timer) {
+      timer = setInterval(refresh, 1500);
+      console.log('Timer started');
+    }
+  }).catch((e) => {
+    console.log('Initial refresh failed, not starting timer:', e.message);
+    // Don't start the timer if we can't connect to the server
+  });
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-  // DOM is already ready
-  initializeApp();
+// Only initialize once, regardless of DOM state
+if (!appInitialized) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeApp();
+    }, { once: true }); // Only run once
+  } else {
+    // DOM is already ready
+    initializeApp();
+  }
 }
